@@ -1,0 +1,16 @@
+{
+    "models_id":"1IMwzqZUuRnTv5jcuKdvZx-RZweknww5x",
+    "dcp":{
+        "git":"https://github.com/smurfaderp/DeepCreamPy.git",
+        "branch":"docker_cli"
+    },
+    "packages":[
+        "cmake",
+        "tcl-dev",
+        "git",
+        "graphviz",
+        "fonts-noto",
+        "python3-setuptools",
+        "python3-wheel"
+    ]
+}
