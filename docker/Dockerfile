@@ -1,8 +1,16 @@
 FROM tensorflow/tensorflow:1.15.0rc2-gpu-py3 as dcp_phase0
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 RUN set -ex; \
     echo "Updating apt package lists."; \
     apt update && \
+    echo "Done."
+
+# Install tzdata. Just rip that bandaid off right now.
+RUN set -ex; \
+    echo "Installing tzdata to get it out of the way."; \
+    apt install -y tzdata && \
     echo "Done."
 
 RUN set -ex; \
@@ -17,7 +25,6 @@ RUN set -ex; \
     apt clean && \
     apt autoclean && \
     echo "Done."
-
 
 # ============================================================================ #
 
@@ -46,10 +53,9 @@ RUN set -ex; \
         /var/cache/apt/*.bin; \
     echo "Done.";
 
-
 # ============================================================================ #
 
-FROM dcp_phase1 as dcp_phase2
+FROM dcp_phase1 as dcp_phase2_0
 
 WORKDIR /opt
 
@@ -58,26 +64,50 @@ RUN  chmod 755 /usr/local/bin/gd.sh
 
 RUN set -ex; \
     cd /opt; \
-    mkdir -p models; \
     MODELS_GOOGLE_ID="$(jq -r '.models_id' settings.json)"; \
+    mkdir -p models; \
+    cd models; \
     echo "Downloading the models from the Google Drive"; \
     gd.sh "${MODELS_GOOGLE_ID}" model.zip && \
     echo "Done."
 
+# ---------------------------------------------------------------------------- #
+
+FROM dcp_phase2_0 as dcp_phase2_1
+
+WORKDIR /opt/models
+
 RUN set -ex; \
+    cd /opt/models; \
     echo "Extracting."; \
     unzip model.zip  && \
+    rm model.zip && \
     echo "Done."
+
+# ---------------------------------------------------------------------------- #
+
+FROM dcp_phase2_1 as dcp_phase2_2
+
+WORKDIR /opt/models
 
 RUN set -ex; \
-    echo "Moving model.h5 to models folder."; \
-    mv model.h5 models && \
+    cd /opt/models; \
+    echo "Moving models to models folder."; \
+    MODEL_FOLDER="$(ls -1 | head -n 1)"; \
+    cd "${MODEL_FOLDER}" && \
+    mv bar .. && \
+    mv mosaic .. && \
+    cd .. && \
+    rm -r "${MODEL_FOLDER}" && \
     echo "Done."
 
+# ---------------------------------------------------------------------------- #
+
+FROM dcp_phase2_2 as dcp_phase2
 
 # ============================================================================ #
 
-FROM dcp_phase2 as dcp_phase3
+FROM dcp_phase2 as dcp_phase3_0
 
 WORKDIR /opt
 
@@ -88,33 +118,47 @@ RUN set -ex; \
             -r '[.dcp.user, .dcp.repo, "tarball", .dcp.branch] | join("/")' \
             settings.json \
     )"; \
-    FOLDER_REGEX="$(jq -r '[.dcp.user, .dcp.repo, "[a-f0-9]+"] | join("-")')"
-    SED_XFORM="/^${FOLDER_REGEX}/DeepCreamPy"
     echo "Downloading the tarballed DCP source at: ${TARBALL_URL}"; \
     curl -sL "${TARBALL_URL}" | tar xz && \
     echo "Done."
-    
-RUN set -ex; \
-    cd /opt; \
-    DCP_FOLDER="$(ls -1rt)"; \
-    echo "Checking out the DCP Branch: ${BRANCH}"; \
-    git checkout "${BRANCH}" && \
-    echo "Done."
 
-RUN ln -s /opt/models /opt/DeepCreamPy/models
+# ---------------------------------------------------------------------------- #
 
-
-# ============================================================================ #
-
-FROM dcp_phase3 as dcp_phase4
+FROM dcp_phase3_0 as dcp_phase3_1
 
 WORKDIR /opt
 
-COPY docker_requirements.txt /tmp
+RUN set -ex; \
+    cd /opt; \
+    echo "Renaming extracted DCP source folder to DeepCreamPy"; \
+    FOLDER_HINT="$(jq -r '[.dcp.user, .dcp.repo] | join("-")' settings.json)"; \
+    FOLDER_NAME="$(ls -1rt | grep ${FOLDER_HINT})"; \
+    mv "${FOLDER_NAME}" DeepCreamPy && \
+    echo "Done."    
+
+RUN ln -s /opt/models /opt/DeepCreamPy/models
+
+# ---------------------------------------------------------------------------- #
+
+FROM dcp_phase3_1 as dcp_phase3
+
+# ============================================================================ #
+
+FROM dcp_phase3 as dcp_phase4_0
+
+WORKDIR /opt
+
+COPY requirements-docker.txt /tmp
 RUN set -ex; \
     echo "Installing the pip requirements."; \
     pip3 install -v -r /tmp/requirements-docker.txt && \
     echo "Done."
+
+# ---------------------------------------------------------------------------- #
+
+FROM dcp_phase4_0 as dcp_phase4_1
+
+WORKDIR /opt
 
 RUN set -ex; \
     echo "Cleaning up."; \
@@ -122,6 +166,9 @@ RUN set -ex; \
     find /usr/lib/python3 -name __pycache__ | xargs rm -r; \
     rm -rf /root/.[acpw]*;
 
+# ---------------------------------------------------------------------------- #
+
+FROM dcp_phase4_1 as dcp_phase4
 
 # ============================================================================ #
 
