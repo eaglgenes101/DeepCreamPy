@@ -3,7 +3,7 @@ Docker image
 
 Build: 
 ```bash
-cd docker && docker build -t smurfaderp/DeepCreamPy:latest . 
+cd docker && docker build -t smurfaderp/deepcreampy:latest . 
 ```
 
 Run:

@@ -1,7 +1,14 @@
 {
+    "models_comment": "Google Drive ID of models",
     "models_id":"1IMwzqZUuRnTv5jcuKdvZx-RZweknww5x",
+    "dcp_comment": [
+        "GitHub location of DeepCreamPy repo and branch",
+        "Translates to https://api.github.com/repos/{user}/{repo}/tarball/{branch}",
+        "For example: https://api.github.com/repos/smurfaderp/DeepCreamPy/tarball/docker_cli"
+    ],
     "dcp":{
-        "git":"https://github.com/smurfaderp/DeepCreamPy.git",
+        "user":"smurfaderp",
+        "repo":"DeepCreamPy",
         "branch":"docker_cli"
     },
     "packages":[

@@ -1,4 +1,4 @@
-FROM tensorflow:1.15.0rc2-gpu-py3 as dcp_phase0
+FROM tensorflow/tensorflow:1.15.0rc2-gpu-py3 as dcp_phase0
 
 RUN set -ex; \
     echo "Updating apt package lists."; \
@@ -83,14 +83,20 @@ WORKDIR /opt
 
 RUN set -ex; \
     cd /opt; \
-    REPO="$(jq -r '.dcp.git' settings.json)"; \
-    echo "Downloading the DCP Repo at: ${REPO}"; \
-    git clone --recursive  && \
+    TARBALL_URL="https://api.github.com/repos/$( \
+        jq \
+            -r '[.dcp.user, .dcp.repo, "tarball", .dcp.branch] | join("/")' \
+            settings.json \
+    )"; \
+    FOLDER_REGEX="$(jq -r '[.dcp.user, .dcp.repo, "[a-f0-9]+"] | join("-")')"
+    SED_XFORM="/^${FOLDER_REGEX}/DeepCreamPy"
+    echo "Downloading the tarballed DCP source at: ${TARBALL_URL}"; \
+    curl -sL "${TARBALL_URL}" | tar xz && \
     echo "Done."
     
 RUN set -ex; \
-    cd /opt/DeepCreamPy; \
-    BRANCH="$(jq -r '.dcp.branch' settings.json)"; \
+    cd /opt; \
+    DCP_FOLDER="$(ls -1rt)"; \
     echo "Checking out the DCP Branch: ${BRANCH}"; \
     git checkout "${BRANCH}" && \
     echo "Done."
