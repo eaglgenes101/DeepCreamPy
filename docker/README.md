@@ -8,7 +8,7 @@ cd docker && docker build -t smurfaderp/deepcreampy:latest .
 
 Run:
 ```bash
-docker run \
+docker run --gpus all \
     -v <input_path>:/opt/DeepCreamPy/decensor_input \
     -v <input_orginal_path>:/opt/DeepCreamPy/decensor_input_original \
     -v <output_path>:/opt/DeepCreamPy/decensor_output \
