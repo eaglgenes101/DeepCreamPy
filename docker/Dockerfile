@@ -136,6 +136,7 @@ RUN set -ex; \
     mv "${FOLDER_NAME}" DeepCreamPy && \
     echo "Done."    
 
+RUN rm -r /opt/DeepCreamPy/models
 RUN ln -s /opt/models /opt/DeepCreamPy/models
 
 # ---------------------------------------------------------------------------- #
@@ -178,6 +179,6 @@ VOLUME [ "/opt/DeepCreamPy/decensor_input", "decensor_input_original", "/opt/Dee
 
 WORKDIR /opt/DeepCreamPy
 
-ENTRYPOINT [ "/usr/bin/python3", "/opt/DeepCreamPy/decensor.py" ]
-
+# ENTRYPOINT [ "/usr/bin/python3", "/opt/DeepCreamPy/decensor.py" ]
+ENTRYPOINT [ "/bin/bash" ]
 
